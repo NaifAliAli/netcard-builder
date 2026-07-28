@@ -1,5 +1,4 @@
-﻿# If simple/ contents are at repo root, use path: .
-# If the repo keeps the monorepo layout, use path: simple
+﻿# Deploy محفظة جيب to GitHub Pages
 
 name: Deploy GitHub Pages
 
@@ -26,45 +25,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect site root (simple/ or repo root)
-        id: site
-        shell: bash
-        run: |
-          if [ -f simple/index.html ]; then
-            echo "path=simple" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=." >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build templates (if images exist)
-        shell: pwsh
-        run: |
-          $root = "${{ steps.site.outputs.path }}"
-          $tpl = Join-Path $root "templates"
-          if (Test-Path $tpl) {
-            $imgs = Get-ChildItem $tpl -File | Where-Object { $_.Extension -match '\.(png|jpe?g)$' }
-            if ($imgs.Count -gt 0) {
-              Push-Location $root
-              & ./convert-templates.ps1
-              Pop-Location
-            }
-          }
-
-      - uses: actions/configure-pages@v4
-
-      - name: Prepare slim deploy (large assets via CDN)
+      - name: Prepare site (web/ folder, slim — no large files)
         id: deploy
         shell: bash
         run: |
-          root="${{ steps.site.outputs.path }}"
+          if [ -f web/index.html ]; then
+            root=web
+          elif [ -f simple/index.html ]; then
+            root=simple
+          else
+            root=.
+          fi
           mkdir -p _site
           cp -r "$root"/. _site/
           rm -f _site/templates-base64.js
           rm -rf _site/templates-data
-          find _site/templates -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) -delete 2>/dev/null || true
-          # Keep templates-thumbs.js (~220KB) for gallery without external CDN
+          rm -rf _site/templates
+          rm -f _site/prepare-web.ps1 _site/README.md _site/vercel.json
+          echo "Deploying from $root — $(find _site -type f | wc -l) files"
+          ls -la _site/
           echo "path=_site" >> "$GITHUB_OUTPUT"
-          ls -la _site/*.js 2>/dev/null || true
+
+      - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
         with:
