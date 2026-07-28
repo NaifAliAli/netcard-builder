@@ -60,8 +60,11 @@ jobs:
           mkdir -p _site
           cp -r "$root"/. _site/
           rm -f _site/templates-base64.js
+          rm -rf _site/templates-data
           find _site/templates -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) -delete 2>/dev/null || true
+          # Keep templates-thumbs.js (~220KB) for gallery without external CDN
           echo "path=_site" >> "$GITHUB_OUTPUT"
+          ls -la _site/*.js 2>/dev/null || true
 
       - uses: actions/upload-pages-artifact@v3
         with:
