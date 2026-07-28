@@ -446,6 +446,7 @@ let isDragging = false;
 let activePointerId = null;
 let imageObjCounter = 0;
 let bgLoadId = 0;
+let lastLoadedBg = null;
 
 function initFontSelect() {
     const sel = document.getElementById('pFontFamily');
@@ -675,7 +676,7 @@ function selectTemplate(id, dataUrl, isNewCustom) {
         redraw();
         saveStorage();
         loadTemplatesGallery();
-        switchTab('design');
+        if (!isDesignOnlyLink()) switchTab('design');
     }, fallbackName);
 }
 
@@ -685,17 +686,19 @@ function loadBackground(src, onReady, fallbackName) {
         return;
     }
     const loadId = ++bgLoadId;
+    const baseSrc = src.split('?')[0].split('&cb=')[0];
 
     const fail = () => {
         if (loadId !== bgLoadId) return;
         const tpl = fallbackName ? getTemplateByName(fallbackName) : null;
-        if (tpl && tpl.path && src !== CDN_BASE + tpl.path) {
-            loadBackground(CDN_BASE + tpl.path.replace(/^\/+/, ''), onReady, null);
-            return;
-        }
-        if (tpl && tpl.path) {
+        if (tpl && tpl.path && !src.startsWith('data:')) {
+            const cdnSrc = CDN_BASE + tpl.path.replace(/^\/+/, '');
+            if (baseSrc !== cdnSrc.split('?')[0]) {
+                loadBackground(cdnSrc, onReady, null);
+                return;
+            }
             const rawSrc = RAW_BASE + tpl.path.replace(/^\/+/, '');
-            if (src !== rawSrc) {
+            if (baseSrc !== rawSrc.split('?')[0]) {
                 loadBackground(rawSrc, onReady, null);
                 return;
             }
@@ -712,19 +715,27 @@ function loadBackground(src, onReady, fallbackName) {
     };
 
     const freshImg = new Image();
+    if (!src.startsWith('data:')) freshImg.crossOrigin = 'anonymous';
+
     freshImg.onload = () => {
         if (loadId !== bgLoadId) return;
         if (!freshImg.naturalWidth || freshImg.naturalWidth < 50) { fail(); return; }
-        bgImage.src = freshImg.src;
+        lastLoadedBg = freshImg;
         canvas.width = freshImg.naturalWidth;
         canvas.height = freshImg.naturalHeight;
         canvas.style.display = 'block';
         document.getElementById('placeholder').style.display = 'none';
+        bgImage.src = baseSrc;
         isBgLoaded = true;
         if (onReady) onReady();
     };
     freshImg.onerror = fail;
-    freshImg.src = src;
+
+    if (src.startsWith('data:')) {
+        freshImg.src = src;
+    } else {
+        freshImg.src = baseSrc + (baseSrc.includes('?') ? '&' : '?') + 'cb=' + loadId;
+    }
 }
 
 function replaceBackgroundOnly(dataUrl) {
@@ -757,7 +768,10 @@ function updateTplUI() {
     document.getElementById('currentTplName').textContent = currentTemplateId || '—';
     document.getElementById('tplBadge').textContent = currentTemplateId ? 'قالب: ' + currentTemplateId : 'بدون قالب';
     document.getElementById('previewSection').style.display = isBgLoaded ? 'block' : 'none';
-    if (isBgLoaded) document.getElementById('previewImg').src = bgImage.src;
+    if (isBgLoaded) {
+        const previewSrc = (lastLoadedBg && lastLoadedBg.src) || bgImage.src;
+        document.getElementById('previewImg').src = previewSrc;
+    }
 }
 
 function getLayerText(layer, row) {
@@ -894,9 +908,12 @@ function drawLayer(layer, previewRow, isExport) {
 
 function redraw() {
     if (!isBgLoaded) return;
+    const bg = (lastLoadedBg && lastLoadedBg.complete && lastLoadedBg.naturalWidth)
+        ? lastLoadedBg : bgImage;
+    if (!bg.complete || !bg.naturalWidth) return;
     const previewRow = previewMode ? getPreviewRow() : null;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImage, 0, 0);
+    ctx.drawImage(bg, 0, 0);
     layers.forEach(l => drawLayer(l, previewRow, false));
 }
 
@@ -1227,8 +1244,9 @@ document.addEventListener('keydown', e => {
 });
 
 function renderExport(previewRow) {
+    const bg = (lastLoadedBg && lastLoadedBg.complete) ? lastLoadedBg : bgImage;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImage, 0, 0);
+    ctx.drawImage(bg, 0, 0);
     layers.forEach(l => drawLayer(l, previewRow, true));
 }
 
