@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@900&family=Lalezar&family=El+Messiri:wght@700&family=Cairo:wght@900&family=Changa:wght@800&family=Amiri:wght@700&family=Reem+Kufi:wght@700&family=Katibeh&family=Scheherazade+New:wght@700&family=Harmattan:wght@700&family=Aref+Ruqaa:wght@700&family=Lemonada:wght@700&family=Marhey:wght@700&family=Rakkas&family=Readex+Pro:wght@700&family=Almarai:wght@800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="templates-manifest.js"></script>
-    <script src="templates-base64.js"></script>
     <style>
         @font-face { font-family: 'Hacen Saudi Arabia'; src: url('fonts/Hacen Saudi Arabia.ttf') format('truetype'); }
         @font-face { font-family: 'Hacen Promoter'; src: url('fonts/Hacen Promoter.ttf') format('truetype'); }
@@ -105,9 +104,24 @@
             border-radius: 8px; font-size: 12px; color: #0f766e; word-break: break-all;
         }
         .share-link-box code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        #appLoading {
+            position: fixed; inset: 0; background: rgba(15,118,110,.95); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #fff; font-size: 18px; font-weight: 700; gap: 16px;
+        }
+        #appLoading.hidden { display: none; }
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid rgba(255,255,255,.3);
+            border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+<div id="appLoading">
+    <div class="spinner"></div>
+    <div>جاري تحميل القوالب — يرجى الانتظار...</div>
+</div>
 <div class="app">
     <div class="header">
         <h1>محفظة جيب — تصاميم جاهزة لكروت الشبكة</h1>
@@ -253,6 +267,9 @@ const DEFAULT_FONT = 'Arial';
 const DEFAULT_FONT_SIZE = 66;
 const DEFAULT_FONT_COLOR = '#000000';
 const DEFAULT_TEMPLATE = 'template13';
+const GH_REPO = 'NaifAliAli/netcard-builder';
+const GH_BRANCH = 'main';
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@' + GH_BRANCH + '/simple/';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -292,21 +309,50 @@ function templateSortKey(name) {
     return m ? parseInt(m[1], 10) : 99999;
 }
 
+function assetUrl(relativePath) {
+    if (!relativePath || location.protocol === 'file:') return relativePath;
+    return CDN_BASE + relativePath.replace(/^\/+/, '');
+}
+
+let base64ScriptPromise = null;
+function ensureBase64Loaded() {
+    if (typeof templatesBase64 !== 'undefined') return Promise.resolve();
+    if (base64ScriptPromise) return base64ScriptPromise;
+    base64ScriptPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = location.protocol === 'file:' ? 'templates-base64.js' : assetUrl('templates-base64.js');
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('failed'));
+        document.head.appendChild(s);
+    });
+    return base64ScriptPromise;
+}
+
+function getBase64ForTemplate(name) {
+    if (typeof templatesBase64 === 'undefined') return null;
+    const t = templatesBase64.find(x => x.name === name);
+    return t ? t.data : null;
+}
+
+function hideAppLoading() {
+    const el = document.getElementById('appLoading');
+    if (el) el.classList.add('hidden');
+}
+
 function buildTemplateList() {
     const map = new Map();
-    const usePaths = location.protocol === 'http:' || location.protocol === 'https:';
 
+    if (typeof templatesManifest !== 'undefined' && Array.isArray(templatesManifest)) {
+        templatesManifest.forEach(t => {
+            if (!t.name || !/^template\d+$/i.test(t.name)) return;
+            map.set(t.name, { name: t.name, path: t.path });
+        });
+    }
     if (typeof templatesBase64 !== 'undefined' && Array.isArray(templatesBase64)) {
         templatesBase64.forEach(t => {
             if (!t.name || !/^template\d+$/i.test(t.name)) return;
-            map.set(t.name, { name: t.name, base64: t.data });
-        });
-    }
-    if (typeof templatesManifest !== 'undefined' && Array.isArray(templatesManifest)) {
-        templatesManifest.forEach(t => {
-            if (!t.name) return;
             const item = map.get(t.name) || { name: t.name };
-            item.path = t.path;
+            item.base64 = t.data;
             map.set(t.name, item);
         });
     }
@@ -318,22 +364,19 @@ function buildTemplateList() {
         })
         .map(t => ({
             name: t.name,
-            base64: t.base64 || null,
+            base64: t.base64 || getBase64ForTemplate(t.name),
             path: t.path || null,
-            thumb: (usePaths && t.path) ? t.path + '?v=' + encodeURIComponent(t.name) : (t.base64 || t.path),
-            src: t.base64 || t.path,
-            fallback: t.base64 || null,
+            thumb: getBase64ForTemplate(t.name) || (t.path ? assetUrl(t.path) : null),
         }))
-        .filter(t => t.src || t.fallback);
+        .filter(t => t.base64 || t.path);
 }
 
 function getTemplateImageSources(tpl) {
-    if (!tpl) return { src: null, fallback: null };
-    const usePaths = location.protocol === 'http:' || location.protocol === 'https:';
-    if (usePaths && tpl.path) {
-        return { src: tpl.path + '?v=' + encodeURIComponent(tpl.name), fallback: tpl.base64 || null };
-    }
-    return { src: tpl.base64 || tpl.path, fallback: null };
+    if (!tpl) return { src: null, fallbackName: null };
+    const b64 = tpl.base64 || getBase64ForTemplate(tpl.name);
+    if (b64) return { src: b64, fallbackName: null };
+    if (tpl.path) return { src: assetUrl(tpl.path), fallbackName: tpl.name };
+    return { src: null, fallbackName: tpl.name };
 }
 
 function getTemplateByName(name) {
@@ -511,8 +554,7 @@ function applyDesignOnlyMode() {
 }
 
 function getShareDesignLink() {
-    const base = location.href.split('#')[0].split('?')[0];
-    return base + '#design';
+    return CDN_BASE + 'index.html#design';
 }
 
 function copyShareLink() {
@@ -537,9 +579,9 @@ function loadTemplatesGallery() {
         div.className = 'tpl' + (tpl.name === DEFAULT_TEMPLATE ? ' featured' : '') + (currentTemplateId === tpl.name ? ' selected' : '');
         const img = document.createElement('img');
         img.alt = tpl.name;
-        img.src = tpl.thumb || tpl.src;
-        if (tpl.fallback && tpl.thumb !== tpl.fallback) {
-            img.onerror = () => { img.onerror = null; img.src = tpl.fallback; };
+        img.src = tpl.thumb || tpl.base64 || '';
+        if (tpl.base64 && tpl.thumb !== tpl.base64) {
+            img.onerror = () => { img.onerror = null; if (tpl.base64) img.src = tpl.base64; };
         }
         const span = document.createElement('span');
         span.textContent = tpl.name + (tpl.name === DEFAULT_TEMPLATE ? ' (افتراضي)' : '');
@@ -562,8 +604,16 @@ function selectTemplate(id, dataUrl, isNewCustom) {
 
     currentTemplateId = id;
     const tpl = getTemplateByName(id);
-    const { src: tplSrc, fallback } = getTemplateImageSources(tpl);
+    const { src: tplSrc, fallbackName } = getTemplateImageSources(tpl);
     const src = dataUrl || tplSrc;
+    if (!src && fallbackName) {
+        ensureBase64Loaded().then(() => {
+            defaultTemplates = buildTemplateList();
+            selectTemplate(id, dataUrl);
+        }).catch(() => alert('تعذر تحميل القالب'));
+        return;
+    }
+    document.getElementById('tplBadge').textContent = 'جاري التحميل: ' + id;
     loadBackground(src, () => {
         if (templateStore[id] && templateStore[id].layers) {
             layers = JSON.parse(JSON.stringify(templateStore[id].layers));
@@ -580,10 +630,10 @@ function selectTemplate(id, dataUrl, isNewCustom) {
         saveStorage();
         loadTemplatesGallery();
         switchTab('design');
-    }, fallback);
+    }, fallbackName);
 }
 
-function loadBackground(src, onReady, altSrc) {
+function loadBackground(src, onReady, fallbackName) {
     if (!src) {
         alert('تعذر تحميل صورة القالب');
         return;
@@ -592,8 +642,12 @@ function loadBackground(src, onReady, altSrc) {
 
     const fail = () => {
         if (loadId !== bgLoadId) return;
-        if (altSrc && altSrc !== src) {
-            loadBackground(altSrc, onReady, null);
+        if (fallbackName) {
+            ensureBase64Loaded().then(() => {
+                const b64 = getBase64ForTemplate(fallbackName);
+                if (b64 && loadId === bgLoadId) loadBackground(b64, onReady, null);
+                else alert('تعذر تحميل صورة القالب: ' + fallbackName);
+            }).catch(() => alert('تعذر تحميل القالب. تحقق من الاتصال بالإنترنت.'));
         } else {
             alert('تعذر تحميل صورة القالب');
         }
@@ -602,6 +656,7 @@ function loadBackground(src, onReady, altSrc) {
     const freshImg = new Image();
     freshImg.onload = () => {
         if (loadId !== bgLoadId) return;
+        if (!freshImg.naturalWidth || freshImg.naturalWidth < 50) { fail(); return; }
         bgImage.src = freshImg.src;
         canvas.width = freshImg.naturalWidth;
         canvas.height = freshImg.naturalHeight;
@@ -1194,23 +1249,33 @@ document.getElementById('excelUpload').addEventListener('change', e => {
 });
 
 loadStorage();
-defaultTemplates = buildTemplateList();
-initFontSelect();
-loadTemplatesGallery();
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcelTemplate);
-applyDesignOnlyMode();
-if (location.protocol.startsWith('http')) {
+
+async function bootApp() {
+    try {
+        await ensureBase64Loaded();
+    } catch (e) {
+        alert('تعذر تحميل ملف القوالب. تحقق من الاتصال بالإنترنت وحاول مجدداً.');
+        hideAppLoading();
+        return;
+    }
+    defaultTemplates = buildTemplateList();
+    initFontSelect();
+    loadTemplatesGallery();
+    applyDesignOnlyMode();
     const box = document.getElementById('shareLinkBox');
     const txt = document.getElementById('shareLinkText');
     if (box && txt) {
         txt.textContent = getShareDesignLink();
         box.style.display = 'block';
     }
+    hideAppLoading();
+    if (defaultTemplates.length) {
+        const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
+        selectTemplate(defaultTpl.name);
+    }
 }
-if (defaultTemplates.length) {
-    const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
-    selectTemplate(defaultTpl.name);
-}
+bootApp();
 </script>
 </body>
 </html>
