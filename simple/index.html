@@ -271,8 +271,7 @@ const GH_REPO = 'NaifAliAli/netcard-builder';
 const GH_BRANCH = 'main';
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@' + GH_BRANCH + '/simple/';
 const RAW_BASE = 'https://raw.githubusercontent.com/' + GH_REPO + '/' + GH_BRANCH + '/simple/';
-const PAGES_URL = 'https://naifaliali.github.io/netcard-builder/#design';
-const PAGES_URL_ALT = 'https://naifaliali.github.io/netcard-builder/simple/index.html#design';
+const PAGES_URL = 'https://naifaliali.github.io/netcard-builder/simple/index.html#design';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -318,8 +317,16 @@ function isHostedSite() {
     return h.includes('github.io') || h.includes('netlify.app') || h.includes('pages.dev') || h.includes('vercel.app');
 }
 
+function usesGitHubPages() {
+    return location.hostname.includes('github.io');
+}
+
 function assetUrl(relativePath) {
     if (!relativePath || location.protocol === 'file:') return relativePath;
+    // GitHub Pages returns 500 for template PNG files — use jsDelivr for assets
+    if (usesGitHubPages()) {
+        return CDN_BASE + relativePath.replace(/^\/+/, '');
+    }
     if (isHostedSite()) return relativePath.replace(/^\/+/, '');
     return CDN_BASE + relativePath.replace(/^\/+/, '');
 }
@@ -332,9 +339,11 @@ function ensureBase64Loaded() {
         const local = 'templates-base64.js';
         const urls = location.protocol === 'file:'
             ? [local]
-            : isHostedSite()
-                ? [local, RAW_BASE + 'templates-base64.js']
-                : [RAW_BASE + 'templates-base64.js', CDN_BASE + 'templates-base64.js'];
+            : usesGitHubPages()
+                ? [RAW_BASE + 'templates-base64.js', local]
+                : isHostedSite()
+                    ? [local, RAW_BASE + 'templates-base64.js']
+                    : [RAW_BASE + 'templates-base64.js', CDN_BASE + 'templates-base64.js'];
         let i = 0;
         const tryNext = () => {
             if (i >= urls.length) {
@@ -583,7 +592,11 @@ function applyDesignOnlyMode() {
 
 function getShareDesignLink() {
     if (location.protocol !== 'file:' && isHostedSite()) {
-        return location.href.split('#')[0].split('?')[0] + '#design';
+        let base = location.href.split('#')[0].split('?')[0];
+        if (usesGitHubPages() && !/\.html$/i.test(base)) {
+            base = base.replace(/\/?$/, '/index.html');
+        }
+        return base + '#design';
     }
     return PAGES_URL;
 }
@@ -679,6 +692,13 @@ function loadBackground(src, onReady, fallbackName) {
         if (tpl && tpl.path && src !== CDN_BASE + tpl.path) {
             loadBackground(CDN_BASE + tpl.path.replace(/^\/+/, ''), onReady, null);
             return;
+        }
+        if (tpl && tpl.path) {
+            const rawSrc = RAW_BASE + tpl.path.replace(/^\/+/, '');
+            if (src !== rawSrc) {
+                loadBackground(rawSrc, onReady, null);
+                return;
+            }
         }
         if (fallbackName) {
             ensureBase64Loaded().then(() => {
