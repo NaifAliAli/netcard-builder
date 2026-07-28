@@ -1,0 +1,1197 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محفظة جيب - كروت الشبكات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@900&family=Lalezar&family=El+Messiri:wght@700&family=Cairo:wght@900&family=Changa:wght@800&family=Amiri:wght@700&family=Reem+Kufi:wght@700&family=Katibeh&family=Scheherazade+New:wght@700&family=Harmattan:wght@700&family=Aref+Ruqaa:wght@700&family=Lemonada:wght@700&family=Marhey:wght@700&family=Rakkas&family=Readex+Pro:wght@700&family=Almarai:wght@800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="templates-manifest.js"></script>
+    <script src="templates-base64.js"></script>
+    <style>
+        @font-face { font-family: 'Hacen Saudi Arabia'; src: url('fonts/Hacen Saudi Arabia.ttf') format('truetype'); }
+        @font-face { font-family: 'Hacen Promoter'; src: url('fonts/Hacen Promoter.ttf') format('truetype'); }
+        @font-face { font-family: 'Hacen Dalal'; src: url('fonts/Hacen Dalal.ttf') format('truetype'); }
+        @font-face { font-family: 'Hacen Freehand'; src: url('fonts/Hacen Freehand.ttf') format('truetype'); }
+        @font-face { font-family: 'KacstArt'; src: url('fonts/KacstArt.ttf') format('truetype'); }
+        @font-face { font-family: 'TheMixArab Bold'; src: url('fonts/TheMixArab Bold.ttf') format('truetype'); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
+            min-height: 100vh; padding: 16px; direction: rtl;
+        }
+        .app { max-width: 1400px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.25); overflow: hidden; }
+        .header { text-align: center; padding: 20px; border-bottom: 3px solid #0f766e; background: #f0fdfa; }
+        .header h1 { color: #0f766e; font-size: 26px; }
+        .header p { color: #64748b; margin-top: 6px; font-size: 14px; }
+        .tabs { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+        .tab {
+            flex: 1; padding: 14px; border: none; background: none; cursor: pointer;
+            font-weight: 700; font-size: 14px; color: #64748b; border-bottom: 3px solid transparent;
+        }
+        .tab.active { color: #0f766e; border-bottom-color: #0f766e; background: #fff; }
+        .panel { display: none; padding: 20px; }
+        .panel.active { display: block; }
+        .section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .section-title { font-weight: 700; color: #0f766e; margin-bottom: 12px; font-size: 15px; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .tpl {
+            border: 2px solid #e2e8f0; border-radius: 10px; overflow: hidden; cursor: pointer; background: #fff;
+            transition: .2s;
+        }
+        .tpl:hover, .tpl.selected { border-color: #0f766e; box-shadow: 0 4px 12px rgba(15,118,110,.2); }
+        .tpl img { width: 100%; height: 90px; object-fit: cover; display: block; }
+        .tpl span { display: block; padding: 6px; font-size: 12px; text-align: center; font-weight: 600; }
+        .tpl.featured span::before { content: '⭐ '; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .btn {
+            padding: 10px 16px; border-radius: 8px; border: 2px solid #0f766e; background: #fff;
+            color: #0f766e; font-weight: 700; cursor: pointer; font-size: 13px;
+        }
+        .btn:hover { background: #f0fdfa; }
+        .btn.primary { background: #0f766e; color: #fff; border-color: #0f766e; }
+        .btn.primary:hover { background: #115e59; }
+        .btn.danger { border-color: #ef4444; color: #ef4444; }
+        .btn.danger:hover { background: #fef2f2; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .file-btn {
+            display: inline-block; padding: 10px 16px; border: 2px dashed #0f766e; border-radius: 8px;
+            cursor: pointer; color: #0f766e; font-weight: 700; font-size: 13px;
+        }
+        .file-btn input { display: none; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+        @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+        .canvas-box {
+            border: 2px solid #cbd5e1; border-radius: 12px; background: #e2e8f0;
+            overflow: auto; max-height: 70vh; min-height: 320px; position: relative;
+            overscroll-behavior: contain;
+        }
+        canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-drag: none; }
+        .sidebar { display: flex; flex-direction: column; gap: 12px; }
+        .layer-list { max-height: 200px; overflow-y: auto; }
+        .layer-item {
+            display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+            border: 1px solid #e2e8f0; margin-bottom: 6px; cursor: pointer; background: #fff; font-size: 13px;
+        }
+        .layer-item.selected { border-color: #0f766e; background: #f0fdfa; }
+        .layer-item.hidden-layer { opacity: .55; }
+        .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .field { display: flex; flex-direction: column; gap: 4px; }
+        .field label { font-size: 11px; font-weight: 700; color: #475569; }
+        .field.full { grid-column: 1 / -1; }
+        .field input, .field select {
+            padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;
+        }
+        .input-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .hint { font-size: 12px; color: #64748b; line-height: 1.7; }
+        .badge { display: inline-block; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        #placeholder { padding: 60px 20px; text-align: center; color: #94a3b8; }
+        body.design-only .tabs { display: none; }
+        body.design-only #panel-templates { display: none !important; }
+        .share-link-box {
+            margin-top: 10px; padding: 10px 14px; background: #ecfdf5; border: 1px solid #99f6e4;
+            border-radius: 8px; font-size: 12px; color: #0f766e; word-break: break-all;
+        }
+        .share-link-box code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>محفظة جيب — كروت الشبكات</h1>
+        <p>تصميم كروت الشبكات — جاهز للنشر على GitHub — أرسل الرابط للموظفين والعملاء</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="templates" onclick="switchTab('templates')">القوالب المتاحة</button>
+        <button class="tab" data-tab="design" onclick="switchTab('design')">التصميم والتصدير</button>
+    </div>
+
+    <!-- تبويب القوالب -->
+    <div id="panel-templates" class="panel active">
+        <div class="section">
+            <div class="section-title">القوالب الجاهزة — انقر للاختيار</div>
+            <div class="gallery" id="templateGallery"></div>
+            <div class="btn-row">
+                <label class="file-btn">📁 رفع قالب جديد (PNG/JPG)
+                    <input type="file" id="newTemplateUpload" accept="image/*">
+                </label>
+                <label class="file-btn">🖼️ استبدال خلفية القالب الحالي فقط
+                    <input type="file" id="replaceBgUpload" accept="image/*">
+                </label>
+                <button class="btn primary" onclick="goToDesign()">متابعة التصميم ←</button>
+            </div>
+            <p class="hint" style="margin-top:10px">
+                انقر أي قالب لعرضه مباشرة في منطقة التصميم. أضف الليبلات يدوياً من أزرار «+ اسم الشبكة» و«+ رقم الكود» و«+ رقم الهاتف».
+            </p>
+            <div class="share-link-box" id="shareLinkBox" style="display:none">
+                <strong>🔗 رابط المشاركة (صفحة التصميم فقط):</strong><br>
+                <code id="shareLinkText"></code>
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn" type="button" onclick="copyShareLink()">📋 نسخ الرابط</button>
+                </div>
+            </div>
+        </div>
+        <div class="section" id="previewSection" style="display:none">
+            <div class="section-title">معاينة القالب: <span id="currentTplName">—</span></div>
+            <img id="previewImg" style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #e2e8f0" alt="">
+        </div>
+    </div>
+
+    <!-- تبويب التصميم -->
+    <div id="panel-design" class="panel">
+        <div class="section">
+            <div class="section-title">1. بيانات العميل</div>
+            <div class="input-row">
+                <div class="field"><label>اسم الشبكة</label><input id="networkName" placeholder="شبكة انترنت"></div>
+                <div class="field"><label>رقم الكود</label><input id="networkCode" placeholder="12345"></div>
+                <div class="field"><label>رقم الهاتف</label><input id="phoneNumber" placeholder="777465157"></div>
+            </div>
+            <div class="btn-row" style="margin-top:12px">
+                <button class="btn" type="button" id="downloadExcelBtn">📥 تنزيل نموذج Excel</button>
+                <label class="file-btn">📊 استيراد Excel
+                    <input type="file" id="excelUpload" accept=".xlsx,.xls">
+                </label>
+                <span id="excelInfo" class="badge" style="display:none"></span>
+            </div>
+            <p class="hint" style="margin-top:8px">نزّل النموذج أولاً وعبّئه — الأعمدة: <strong>اسم الشبكة | رقم الكود | رقم الهاتف</strong></p>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <div class="section">
+                    <div class="section-title">2. منطقة التصميم <span class="badge" id="tplBadge">بدون قالب</span></div>
+                    <div class="btn-row">
+                        <button class="btn" onclick="addTextLayer('name')">+ اسم الشبكة</button>
+                        <button class="btn" onclick="addTextLayer('code')">+ رقم الكود</button>
+                        <button class="btn" onclick="addTextLayer('phone')">+ رقم الهاتف</button>
+                        <label class="btn" style="cursor:pointer">+ صورة
+                            <input type="file" id="layerImageUpload" accept="image/*" style="display:none" onchange="addImageLayer(event)">
+                        </label>
+                        <button class="btn danger" onclick="deleteSelectedLayer()">حذف الطبقة</button>
+                        <button class="btn" onclick="undo()" title="Ctrl+Z">↩ تراجع</button>
+                        <button class="btn" id="previewBtn" onclick="togglePreview()">👁 معاينة التصدير</button>
+                    </div>
+                    <div id="previewBanner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#92400e">
+                        <strong>وضع المعاينة:</strong> <span id="previewBannerText"></span>
+                    </div>
+                    <p class="hint" style="margin:8px 0">أضف الليبلات بالأزرار أعلاه · انقر للتحديد · اسحب للنقل · الزوايا ◻ للتكبير · المقبض البرتقالي ↑ للتدوير</p>
+                    <div class="canvas-box">
+                        <div id="placeholder">اختر قالباً من تبويب «القوالب المتاحة»</div>
+                        <canvas id="canvas" style="display:none;max-width:100%;height:auto"></canvas>
+                    </div>
+                </div>
+                <button class="btn primary" style="width:100%;padding:14px;margin-top:8px" onclick="exportImage()">📥 تصدير صورة واحدة</button>
+                <button class="btn primary" style="width:100%;padding:14px;margin-top:8px;display:none" id="exportAllBtn" onclick="exportAllFromExcel()">📥 تصدير كل صفوف Excel</button>
+            </div>
+
+            <div class="sidebar">
+                <div class="section">
+                    <div class="section-title">3. الطبقات (Layers)</div>
+                    <div class="layer-list" id="layerList"></div>
+                </div>
+                <div class="section" id="propsPanel">
+                    <div class="section-title">4. خصائص الطبقة المحددة</div>
+                    <p class="hint" id="noSelection">حدّد طبقة من القائمة أو من القالب</p>
+                    <div id="propsForm" style="display:none" class="props-grid">
+                        <div class="field full"><label>الاسم</label><input id="pLabel" readonly></div>
+                        <div class="field"><label>حجم الخط</label><input type="number" id="pFontSize" min="8" max="300"></div>
+                        <div class="field"><label>لون الخط</label><input type="color" id="pColor"></div>
+                        <div class="field"><label>نوع الخط</label>
+                            <select id="pFontFamily"></select>
+                        </div>
+                        <div class="field"><label>سماكة الخط</label>
+                            <select id="pFontWeight">
+                                <option value="normal">عادي</option>
+                                <option value="bold">عريض</option>
+                                <option value="900">ثقيل جداً</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>المحاذاة</label>
+                            <select id="pAlign">
+                                <option value="right">يمين</option>
+                                <option value="center">وسط</option>
+                                <option value="left">يسار</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>الشفافية %</label><input type="range" id="pOpacity" min="0" max="100"></div>
+                        <div class="field"><label>التدوير °</label><input type="number" id="pRotation" min="-360" max="360"></div>
+                        <div class="field"><label>الظل</label>
+                            <select id="pShadowOn"><option value="0">إيقاف</option><option value="1">تشغيل</option></select>
+                        </div>
+                        <div class="field"><label>لون الظل</label><input type="color" id="pShadowColor"></div>
+                        <div class="field"><label>حجم الظل</label><input type="number" id="pShadowBlur" min="0" max="30"></div>
+                        <div class="field"><label>عرض الصورة</label><input type="number" id="pWidth" min="20" max="2000"></div>
+                        <div class="field"><label>ارتفاع الصورة</label><input type="number" id="pHeight" min="20" max="2000"></div>
+                        <div class="field full">
+                            <label><input type="checkbox" id="pVisible"> إظهار الطبقة</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'mahfazat-jeeb-layers-v1';
+const DEFAULT_FONT = 'Arial';
+const DEFAULT_FONT_SIZE = 66;
+const DEFAULT_FONT_COLOR = '#000000';
+const DEFAULT_TEMPLATE = 'template1';
+const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
+const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
+const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
+
+const FONT_OPTIONS = [
+    { value: 'Arial', label: 'Arial (افتراضي)', group: 'خطوط افتراضية' },
+    { value: 'Tahoma', label: 'Tahoma', group: 'خطوط افتراضية' },
+    { value: 'Segoe UI', label: 'Segoe UI', group: 'خطوط افتراضية' },
+    { value: 'Hacen Saudi Arabia', label: 'Hacen Saudi Arabia', group: 'خطوط محلية' },
+    { value: 'Hacen Promoter', label: 'Hacen Promoter', group: 'خطوط محلية' },
+    { value: 'Hacen Dalal', label: 'Hacen Dalal', group: 'خطوط محلية' },
+    { value: 'Hacen Freehand', label: 'Hacen Freehand', group: 'خطوط محلية' },
+    { value: 'KacstArt', label: 'Kacst Art', group: 'خطوط محلية' },
+    { value: 'TheMixArab Bold', label: 'TheMixArab Bold', group: 'خطوط محلية' },
+    { value: 'Cairo', label: 'كايرو عريض', group: 'خطوط Google' },
+    { value: 'Tajawal', label: 'تجوال ثقيل', group: 'خطوط Google' },
+    { value: 'Almarai', label: 'المراعي (بديل زين)', group: 'خطوط Google' },
+    { value: 'Changa', label: 'شانجا بارز', group: 'خطوط Google' },
+    { value: 'El Messiri', label: 'المسيري عريض', group: 'خطوط Google' },
+    { value: 'Lalezar', label: 'Lalezar كروت', group: 'خطوط Google' },
+    { value: 'Reem Kufi', label: 'ريم كوفي', group: 'خطوط Google' },
+    { value: 'Marhey', label: 'مارهي إعلاني', group: 'خطوط Google' },
+    { value: 'Rakkas', label: 'ركاس فخم', group: 'خطوط Google' },
+    { value: 'Readex Pro', label: 'Readex Pro', group: 'خطوط Google' },
+    { value: 'Amiri', label: 'أميري عريض', group: 'خطوط Google' },
+    { value: 'Katibeh', label: 'كتيبة فنية', group: 'خطوط Google' },
+    { value: 'Scheherazade New', label: 'شهرزاد', group: 'خطوط Google' },
+    { value: 'Harmattan', label: 'Harmattan', group: 'خطوط Google' },
+    { value: 'Aref Ruqaa', label: 'عارف رقعة', group: 'خطوط Google' },
+    { value: 'Lemonada', label: 'Lemonada', group: 'خطوط Google' },
+];
+
+let defaultTemplates = [];
+
+function templateSortKey(name) {
+    const m = String(name).match(/^template(\d+)$/i);
+    return m ? parseInt(m[1], 10) : 99999;
+}
+
+function buildTemplateList() {
+    const map = new Map();
+
+    if (typeof templatesBase64 !== 'undefined' && Array.isArray(templatesBase64)) {
+        templatesBase64.forEach(t => {
+            if (!t.name || !/^template\d+$/i.test(t.name)) return;
+            map.set(t.name, { name: t.name, base64: t.data });
+        });
+    }
+    if (typeof templatesManifest !== 'undefined' && Array.isArray(templatesManifest)) {
+        templatesManifest.forEach(t => {
+            if (!t.name) return;
+            const item = map.get(t.name) || { name: t.name };
+            item.path = t.path;
+            map.set(t.name, item);
+        });
+    }
+
+    return Array.from(map.values())
+        .sort((a, b) => {
+            const diff = templateSortKey(a.name) - templateSortKey(b.name);
+            return diff !== 0 ? diff : a.name.localeCompare(b.name);
+        })
+        .map(t => ({
+            name: t.name,
+            base64: t.base64 || null,
+            path: t.path || null,
+            // base64 أولاً — موثوق محلياً وعلى GitHub
+            src: t.base64 || t.path,
+        }))
+        .filter(t => t.src);
+}
+
+function getTemplateByName(name) {
+    return defaultTemplates.find(t => t.name === name);
+}
+
+function resolveTemplateSrc(name, override) {
+    if (override) return override;
+    const tpl = getTemplateByName(name);
+    return tpl ? (tpl.src || tpl.fallback) : null;
+}
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const bgImage = new Image();
+const imageCache = {};
+
+let currentTemplateId = null;
+let templateStore = {};
+let layers = [];
+let selectedLayerId = null;
+let isBgLoaded = false;
+let excelData = [];
+let history = [];
+let previewMode = false;
+
+let dragMode = null;
+let dragStart = {};
+let isDragging = false;
+let activePointerId = null;
+let imageObjCounter = 0;
+let bgLoadId = 0;
+
+function initFontSelect() {
+    const sel = document.getElementById('pFontFamily');
+    const groups = {};
+    FONT_OPTIONS.forEach(f => {
+        if (!groups[f.group]) groups[f.group] = document.createElement('optgroup');
+        groups[f.group].label = f.group;
+        const opt = document.createElement('option');
+        opt.value = f.value;
+        opt.textContent = f.label;
+        groups[f.group].appendChild(opt);
+    });
+    sel.innerHTML = '';
+    Object.values(groups).forEach(g => sel.appendChild(g));
+}
+
+function downloadBlob(filename, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 300);
+}
+
+function downloadExcelTemplate() {
+    const rows = [
+        ['اسم الشبكة', 'رقم الكود', 'رقم الهاتف'],
+        ['شبكة انترنت', '12345', '777465157'],
+        ['شبكة الحي', '67890', '777123456'],
+    ];
+
+    if (typeof XLSX !== 'undefined') {
+        try {
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 16 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Data');
+            const data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            downloadBlob('mahfazat-jeeb-template.xlsx', new Blob([data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            }));
+            return;
+        } catch (err) {
+            console.error('Excel download failed:', err);
+        }
+    }
+
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(r =>
+        r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')
+    ).join('\r\n');
+    downloadBlob('mahfazat-jeeb-template.csv', new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    alert('تم تنزيل النموذج (CSV) — افتحه بـ Excel واحفظه كـ xlsx إن أردت');
+}
+window.downloadExcelTemplate = downloadExcelTemplate;
+
+function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function defaultLayer(type, w, h, index) {
+    const positions = {
+        name: { x: w * 0.5, y: h * 0.32 },
+        code: { x: w * 0.5, y: h * 0.52 },
+        phone: { x: w * 0.5, y: h * 0.72 },
+    };
+    const p = positions[type] || { x: w * 0.5, y: h * 0.5 };
+    return {
+        id: uid(), type, x: p.x, y: p.y,
+        fontSize: DEFAULT_FONT_SIZE,
+        color: DEFAULT_FONT_COLOR,
+        fontFamily: DEFAULT_FONT,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        rotation: 0,
+        opacity: 1,
+        visible: true,
+        shadowOn: false,
+        shadowColor: '#000000',
+        shadowBlur: 6,
+        shadowOffsetX: 3,
+        shadowOffsetY: 3,
+        scale: 1,
+        width: 120,
+        height: 120,
+        imageSrc: null,
+    };
+}
+
+function loadStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) templateStore = JSON.parse(raw);
+    } catch (e) { templateStore = {}; }
+}
+
+function saveStorage() {
+    if (currentTemplateId) {
+        templateStore[currentTemplateId] = {
+            background: bgImage.src,
+            layers: JSON.parse(JSON.stringify(layers)),
+        };
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(templateStore));
+}
+
+function pushHistory() {
+    history.push(JSON.stringify(layers));
+    if (history.length > 40) history.shift();
+}
+
+function undo() {
+    if (!history.length) return;
+    layers = JSON.parse(history.pop());
+    renderLayerList();
+    syncPropsFromLayer();
+    redraw();
+    saveStorage();
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    if (!isDesignOnlyLink()) {
+        history.replaceState(null, '', tab === 'design' ? '#design' : '#templates');
+    }
+}
+
+function isDesignOnlyLink() {
+    const hash = (location.hash || '').replace('#', '').toLowerCase();
+    const params = new URLSearchParams(location.search);
+    return hash === 'design' || params.get('design') === '1' || params.get('view') === 'design';
+}
+
+function applyDesignOnlyMode() {
+    if (!isDesignOnlyLink()) return;
+    document.body.classList.add('design-only');
+    switchTab('design');
+}
+
+function getShareDesignLink() {
+    const base = location.href.split('#')[0].split('?')[0];
+    return base + '#design';
+}
+
+function copyShareLink() {
+    const link = getShareDesignLink();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => alert('تم نسخ الرابط:\n' + link)).catch(() => prompt('انسخ الرابط:', link));
+    } else {
+        prompt('انسخ الرابط وشاركه مع الموظفين:', link);
+    }
+}
+
+function goToDesign() {
+    if (!isBgLoaded) { alert('اختر قالباً أولاً'); return; }
+    switchTab('design');
+}
+
+function loadTemplatesGallery() {
+    const gallery = document.getElementById('templateGallery');
+    gallery.innerHTML = '';
+    defaultTemplates.forEach(tpl => {
+        const div = document.createElement('div');
+        div.className = 'tpl' + (tpl.name === DEFAULT_TEMPLATE ? ' featured' : '') + (currentTemplateId === tpl.name ? ' selected' : '');
+        const img = document.createElement('img');
+        img.alt = tpl.name;
+        img.src = tpl.src;
+        if (tpl.path && tpl.base64 && tpl.path !== tpl.base64) {
+            img.onerror = () => { img.onerror = null; img.src = tpl.base64; };
+        }
+        const span = document.createElement('span');
+        span.textContent = tpl.name + (tpl.name === DEFAULT_TEMPLATE ? ' (افتراضي)' : '');
+        div.appendChild(img);
+        div.appendChild(span);
+        div.onclick = () => selectTemplate(tpl.name);
+        gallery.appendChild(div);
+    });
+}
+
+function selectTemplate(id, dataUrl, isNewCustom) {
+    if (currentTemplateId && isBgLoaded) saveStorage();
+
+    if (currentTemplateId && currentTemplateId !== id && isBgLoaded) {
+        templateStore[currentTemplateId] = {
+            background: bgImage.src,
+            layers: JSON.parse(JSON.stringify(layers)),
+        };
+    }
+
+    currentTemplateId = id;
+    const tpl = getTemplateByName(id);
+    const freshSrc = tpl ? tpl.src : null;
+    const altSrc = tpl && tpl.path && tpl.base64 ? tpl.path : null;
+    const src = dataUrl || freshSrc;
+    loadBackground(src, () => {
+        if (templateStore[id] && templateStore[id].layers) {
+            layers = JSON.parse(JSON.stringify(templateStore[id].layers));
+            preloadLayerImages();
+        } else {
+            layers = [];
+        }
+        selectedLayerId = null;
+        history = [];
+        renderLayerList();
+        syncPropsFromLayer();
+        updateTplUI();
+        redraw();
+        saveStorage();
+        loadTemplatesGallery();
+        switchTab('design');
+    }, altSrc);
+}
+
+function loadBackground(src, onReady, altSrc) {
+    if (!src) {
+        alert('تعذر تحميل صورة القالب');
+        return;
+    }
+    const loadId = ++bgLoadId;
+
+    const finish = () => {
+        if (loadId !== bgLoadId) return;
+        canvas.width = bgImage.width;
+        canvas.height = bgImage.height;
+        canvas.style.display = 'block';
+        document.getElementById('placeholder').style.display = 'none';
+        isBgLoaded = true;
+        if (onReady) onReady();
+    };
+
+    const fail = () => {
+        if (loadId !== bgLoadId) return;
+        if (altSrc && altSrc !== src) {
+            loadBackground(altSrc, onReady, null);
+        } else {
+            alert('تعذر تحميل صورة القالب');
+        }
+    };
+
+    bgImage.onload = finish;
+    bgImage.onerror = fail;
+    bgImage.src = '';
+    bgImage.src = src;
+}
+
+function replaceBackgroundOnly(dataUrl) {
+    if (!currentTemplateId) { alert('اختر قالباً أولاً'); return; }
+    pushHistory();
+    bgImage.onload = () => {
+        canvas.width = bgImage.width;
+        canvas.height = bgImage.height;
+        templateStore[currentTemplateId] = templateStore[currentTemplateId] || {};
+        templateStore[currentTemplateId].background = dataUrl;
+        templateStore[currentTemplateId].layers = JSON.parse(JSON.stringify(layers));
+        saveStorage();
+        redraw();
+        document.getElementById('previewImg').src = dataUrl;
+    };
+    bgImage.src = dataUrl;
+}
+
+function preloadLayerImages() {
+    layers.filter(l => l.type === 'image' && l.imageSrc).forEach(l => {
+        if (!imageCache[l.id]) {
+            const img = new Image();
+            img.src = l.imageSrc;
+            imageCache[l.id] = img;
+        }
+    });
+}
+
+function updateTplUI() {
+    document.getElementById('currentTplName').textContent = currentTemplateId || '—';
+    document.getElementById('tplBadge').textContent = currentTemplateId ? 'قالب: ' + currentTemplateId : 'بدون قالب';
+    document.getElementById('previewSection').style.display = isBgLoaded ? 'block' : 'none';
+    if (isBgLoaded) document.getElementById('previewImg').src = bgImage.src;
+}
+
+function getLayerText(layer, row) {
+    if (layer.type === 'image') return '';
+    const manual = {
+        name: document.getElementById('networkName').value,
+        code: document.getElementById('networkCode').value,
+        phone: document.getElementById('phoneNumber').value,
+    };
+    const data = row || manual;
+    const val = { name: data.name, code: data.code, phone: data.phone }[layer.type];
+    if (row) return String(val || '');
+    return val ? String(val) : PLACEHOLDERS[layer.type];
+}
+
+function measureTextLayer(layer, text, preview) {
+    ctx.save();
+    ctx.font = `${layer.fontWeight} ${layer.fontSize}px ${layer.fontFamily}`;
+    const w = Math.max(ctx.measureText(text || PLACEHOLDERS[layer.type]).width, 40);
+    const h = layer.fontSize * 1.4;
+    ctx.restore();
+    return { w, h };
+}
+
+function getLayerBounds(layer, preview) {
+    if (layer.type === 'image') {
+        const w = layer.width;
+        const h = layer.height;
+        return { w, h, left: layer.x - w / 2, top: layer.y - h / 2 };
+    }
+    const text = getLayerText(layer, preview);
+    const { w, h } = measureTextLayer(layer, text, preview);
+    return { w, h, left: layer.x - w / 2, top: layer.y - h / 2 };
+}
+
+function getPreviewRow() {
+    if (excelData.length) return excelData[0];
+    return {
+        name: document.getElementById('networkName').value,
+        code: document.getElementById('networkCode').value,
+        phone: document.getElementById('phoneNumber').value,
+    };
+}
+
+function togglePreview() {
+    if (!isBgLoaded) { alert('اختر قالباً أولاً'); return; }
+    previewMode = !previewMode;
+    const btn = document.getElementById('previewBtn');
+    btn.textContent = previewMode ? '⏹ إيقاف المعاينة' : '👁 معاينة التصدير';
+    btn.classList.toggle('primary', previewMode);
+    const banner = document.getElementById('previewBanner');
+    banner.style.display = previewMode ? 'block' : 'none';
+    if (previewMode) {
+        if (excelData.length) {
+            const r = excelData[0];
+            document.getElementById('previewBannerText').textContent =
+                'بيانات Excel — الصف الأول: ' + (r.name || '—') + ' | ' + (r.code || '—') + ' | ' + (r.phone || '—');
+        } else {
+            document.getElementById('previewBannerText').textContent = 'بالبيانات المدخلة يدوياً (كما ستظهر عند التصدير)';
+        }
+    }
+    redraw();
+}
+
+function drawSelectionHandles(layer, previewRow) {
+    if (previewMode) return;
+    const b = getLayerBounds(layer, previewRow);
+    const cx = layer.x, cy = layer.y;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((layer.rotation * Math.PI) / 180);
+    ctx.strokeStyle = '#0f766e';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+    ctx.setLineDash([]);
+    const hs = 12;
+    const corners = [
+        { x: -b.w / 2, y: -b.h / 2 },
+        { x: b.w / 2, y: -b.h / 2 },
+        { x: -b.w / 2, y: b.h / 2 },
+        { x: b.w / 2, y: b.h / 2 },
+    ];
+    corners.forEach(c => {
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#0f766e';
+        ctx.lineWidth = 2;
+        ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
+        ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
+    });
+    ctx.fillStyle = '#f59e0b';
+    ctx.strokeStyle = '#b45309';
+    ctx.beginPath();
+    ctx.arc(0, -b.h / 2 - 22, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+}
+
+function drawLayer(layer, previewRow, isExport) {
+    if (!layer.visible) return;
+    ctx.save();
+    ctx.globalAlpha = layer.opacity;
+    ctx.translate(layer.x, layer.y);
+    ctx.rotate((layer.rotation * Math.PI) / 180);
+
+    if (layer.type === 'image' && layer.imageSrc) {
+        const img = imageCache[layer.id];
+        if (img && img.complete) {
+            const w = layer.width;
+            const h = layer.height;
+            ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        }
+    } else if (layer.type !== 'image') {
+        const text = getLayerText(layer, previewRow);
+        ctx.font = `${layer.fontWeight} ${layer.fontSize}px ${layer.fontFamily}`;
+        if (layer.shadowOn) {
+            ctx.shadowColor = layer.shadowColor;
+            ctx.shadowBlur = layer.shadowBlur;
+            ctx.shadowOffsetX = layer.shadowOffsetX;
+            ctx.shadowOffsetY = layer.shadowOffsetY;
+        }
+        ctx.fillStyle = layer.color;
+        ctx.textAlign = layer.textAlign;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 0, 0);
+    }
+    ctx.restore();
+
+    if (!isExport && layer.id === selectedLayerId) {
+        drawSelectionHandles(layer, previewRow);
+    }
+}
+
+function redraw() {
+    if (!isBgLoaded) return;
+    const previewRow = previewMode ? getPreviewRow() : null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImage, 0, 0);
+    layers.forEach(l => drawLayer(l, previewRow, false));
+}
+
+function renderLayerList() {
+    const list = document.getElementById('layerList');
+    list.innerHTML = '';
+    [...layers].reverse().forEach(layer => {
+        const div = document.createElement('div');
+        div.className = 'layer-item' + (layer.id === selectedLayerId ? ' selected' : '') + (!layer.visible ? ' hidden-layer' : '');
+        div.innerHTML = `
+            <input type="checkbox" ${layer.visible ? 'checked' : ''} onclick="event.stopPropagation();toggleVisible('${layer.id}')">
+            <span style="flex:1">${TYPE_LABELS[layer.type] || layer.type}</span>
+            <button class="btn" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();selectLayer('${layer.id}')">✎</button>`;
+        div.onclick = () => selectLayer(layer.id);
+        list.appendChild(div);
+    });
+}
+
+function selectLayer(id) {
+    selectedLayerId = id;
+    renderLayerList();
+    syncPropsFromLayer();
+    redraw();
+}
+
+function toggleVisible(id) {
+    const l = layers.find(x => x.id === id);
+    if (!l) return;
+    pushHistory();
+    l.visible = !l.visible;
+    renderLayerList();
+    redraw();
+    saveStorage();
+}
+
+function syncPropsFromLayer() {
+    const l = layers.find(x => x.id === selectedLayerId);
+    const form = document.getElementById('propsForm');
+    const none = document.getElementById('noSelection');
+    if (!l) { form.style.display = 'none'; none.style.display = 'block'; return; }
+    form.style.display = 'grid';
+    none.style.display = 'none';
+    document.getElementById('pLabel').value = TYPE_LABELS[l.type] || l.type;
+    document.getElementById('pFontSize').value = l.fontSize;
+    document.getElementById('pColor').value = l.color;
+    document.getElementById('pFontFamily').value = l.fontFamily;
+    document.getElementById('pFontWeight').value = l.fontWeight;
+    document.getElementById('pAlign').value = l.textAlign;
+    document.getElementById('pOpacity').value = Math.round(l.opacity * 100);
+    document.getElementById('pRotation').value = l.rotation;
+    document.getElementById('pShadowOn').value = l.shadowOn ? '1' : '0';
+    document.getElementById('pShadowColor').value = l.shadowColor;
+    document.getElementById('pShadowBlur').value = l.shadowBlur;
+    document.getElementById('pWidth').value = l.width;
+    document.getElementById('pHeight').value = l.height;
+    document.getElementById('pVisible').checked = l.visible;
+    const isText = l.type !== 'image';
+    ['pFontSize','pColor','pFontFamily','pFontWeight','pAlign','pShadowOn','pShadowColor','pShadowBlur'].forEach(id => {
+        document.getElementById(id).closest('.field').style.display = isText ? '' : 'none';
+    });
+    ['pWidth','pHeight'].forEach(id => {
+        document.getElementById(id).closest('.field').style.display = l.type === 'image' ? '' : 'none';
+    });
+}
+
+function applyPropsToLayer() {
+    if (isDragging) return;
+    const l = layers.find(x => x.id === selectedLayerId);
+    if (!l) return;
+    l.fontSize = parseInt(document.getElementById('pFontSize').value) || DEFAULT_FONT_SIZE;
+    l.color = document.getElementById('pColor').value;
+    l.fontFamily = document.getElementById('pFontFamily').value;
+    l.fontWeight = document.getElementById('pFontWeight').value;
+    l.textAlign = document.getElementById('pAlign').value;
+    l.opacity = parseInt(document.getElementById('pOpacity').value) / 100;
+    l.rotation = parseFloat(document.getElementById('pRotation').value) || 0;
+    l.shadowOn = document.getElementById('pShadowOn').value === '1';
+    l.shadowColor = document.getElementById('pShadowColor').value;
+    l.shadowBlur = parseInt(document.getElementById('pShadowBlur').value) || 0;
+    l.width = parseInt(document.getElementById('pWidth').value) || 100;
+    l.height = parseInt(document.getElementById('pHeight').value) || 100;
+    l.visible = document.getElementById('pVisible').checked;
+    redraw();
+    saveStorage();
+}
+
+['pFontSize','pColor','pFontFamily','pFontWeight','pAlign','pOpacity','pRotation','pShadowOn','pShadowColor','pShadowBlur','pWidth','pHeight','pVisible'].forEach(id => {
+    document.getElementById(id).addEventListener('input', applyPropsToLayer);
+    document.getElementById(id).addEventListener('change', () => { pushHistory(); applyPropsToLayer(); });
+});
+
+function addTextLayer(type) {
+    if (!isBgLoaded) { alert('اختر قالباً أولاً'); return; }
+    pushHistory();
+    const l = defaultLayer(type, canvas.width, canvas.height);
+    l.x = canvas.width / 2;
+    l.y = canvas.height / 2;
+    layers.push(l);
+    selectedLayerId = l.id;
+    renderLayerList();
+    syncPropsFromLayer();
+    redraw();
+    saveStorage();
+}
+
+function addImageLayer(e) {
+    const file = e.target.files[0];
+    if (!file || !isBgLoaded) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        pushHistory();
+        const l = defaultLayer('image', canvas.width, canvas.height);
+        l.imageSrc = ev.target.result;
+        l.x = canvas.width / 2;
+        l.y = canvas.height / 2;
+        const img = new Image();
+        img.onload = () => {
+            l.width = Math.min(img.width, canvas.width * 0.3);
+            l.height = (img.height / img.width) * l.width;
+            imageCache[l.id] = img;
+            layers.push(l);
+            selectedLayerId = l.id;
+            renderLayerList();
+            syncPropsFromLayer();
+            redraw();
+            saveStorage();
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+}
+
+function deleteSelectedLayer() {
+    if (!selectedLayerId) { alert('حدّد طبقة أولاً'); return; }
+    pushHistory();
+    layers = layers.filter(l => l.id !== selectedLayerId);
+    delete imageCache[selectedLayerId];
+    selectedLayerId = null;
+    renderLayerList();
+    syncPropsFromLayer();
+    redraw();
+    saveStorage();
+}
+
+function hitTest(x, y) {
+    const row = previewMode ? getPreviewRow() : null;
+    for (let i = layers.length - 1; i >= 0; i--) {
+        const l = layers[i];
+        if (!l.visible) continue;
+        const b = getLayerBounds(l, row);
+        if (x >= b.left && x <= b.left + b.w && y >= b.top && y <= b.top + b.h) return l.id;
+    }
+    return null;
+}
+
+function getHandleHit(x, y, layer) {
+    if (!layer || layer.id !== selectedLayerId || previewMode) return null;
+    const previewRow = previewMode ? getPreviewRow() : null;
+    const b = getLayerBounds(layer, previewRow);
+    const cx = layer.x, cy = layer.y;
+    const rad = layer.rotation * Math.PI / 180;
+    const cos = Math.cos(rad), sin = Math.sin(rad);
+    const localX = (x - cx) * cos + (y - cy) * sin;
+    const localY = -(x - cx) * sin + (y - cy) * cos;
+
+    const corners = [
+        { id: 'resize-nw', lx: -b.w / 2, ly: -b.h / 2 },
+        { id: 'resize-ne', lx: b.w / 2, ly: -b.h / 2 },
+        { id: 'resize-sw', lx: -b.w / 2, ly: b.h / 2 },
+        { id: 'resize-se', lx: b.w / 2, ly: b.h / 2 },
+    ];
+    for (const c of corners) {
+        if (Math.hypot(localX - c.lx, localY - c.ly) < 16) return c.id;
+    }
+    if (Math.hypot(localX, localY + b.h / 2 + 22) < 16) return 'rotate';
+    return null;
+}
+
+function canvasPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height),
+    };
+}
+
+function applyDrag(e) {
+    if (!isDragging || !dragMode || !selectedLayerId) return;
+    if (e.buttons !== undefined && e.buttons === 0) { endDrag(e); return; }
+
+    const { x, y } = canvasPoint(e);
+    const l = layers.find(layer => layer.id === selectedLayerId);
+    if (!l) return;
+
+    if (dragMode === 'move') {
+        l.x = dragStart.ox + (x - dragStart.x);
+        l.y = dragStart.oy + (y - dragStart.y);
+    } else if (dragMode.startsWith('resize')) {
+        const dist = Math.hypot(x - l.x, y - l.y);
+        const base = Math.hypot(dragStart.x - l.x, dragStart.y - l.y) || 1;
+        const ratio = dist / base;
+        if (l.type === 'image') {
+            l.width = Math.max(20, Math.round(dragStart.layer.width * ratio));
+            l.height = Math.max(20, Math.round(dragStart.layer.height * ratio));
+        } else {
+            l.fontSize = Math.max(8, Math.min(300, Math.round(dragStart.layer.fontSize * ratio)));
+        }
+    } else if (dragMode === 'rotate') {
+        l.rotation = dragStart.startRot + Math.atan2(y - l.y, x - l.x) * 180 / Math.PI - Math.atan2(dragStart.y - l.y, dragStart.x - l.x) * 180 / Math.PI;
+    }
+    redraw();
+}
+
+function endDrag(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    const hadDrag = !!dragMode;
+    dragMode = null;
+    setCanvasCursor(null);
+    document.removeEventListener('pointermove', applyDrag, true);
+    document.removeEventListener('pointerup', endDrag, true);
+    document.removeEventListener('pointercancel', endDrag, true);
+    document.removeEventListener('mousemove', applyDrag, true);
+    document.removeEventListener('mouseup', endDrag, true);
+    if (e && e.pointerId != null && canvas.hasPointerCapture(e.pointerId)) {
+        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    } else if (activePointerId != null && canvas.hasPointerCapture(activePointerId)) {
+        try { canvas.releasePointerCapture(activePointerId); } catch (_) {}
+    }
+    activePointerId = null;
+    if (hadDrag) {
+        syncPropsFromLayer();
+        saveStorage();
+    }
+}
+
+function startDrag(e) {
+    isDragging = true;
+    document.removeEventListener('pointermove', applyDrag, true);
+    document.removeEventListener('pointerup', endDrag, true);
+    document.removeEventListener('pointercancel', endDrag, true);
+    document.removeEventListener('mousemove', applyDrag, true);
+    document.removeEventListener('mouseup', endDrag, true);
+    document.addEventListener('pointermove', applyDrag, true);
+    document.addEventListener('pointerup', endDrag, true);
+    document.addEventListener('pointercancel', endDrag, true);
+    document.addEventListener('mousemove', applyDrag, true);
+    document.addEventListener('mouseup', endDrag, true);
+    if (e && e.pointerId != null) {
+        activePointerId = e.pointerId;
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+}
+
+function setCanvasCursor(handle) {
+    const map = {
+        'resize-nw': 'nwse-resize', 'resize-se': 'nwse-resize',
+        'resize-ne': 'nesw-resize', 'resize-sw': 'nesw-resize',
+        rotate: 'grab', move: 'move',
+    };
+    canvas.style.cursor = handle ? (map[handle] || 'default') : 'default';
+}
+
+canvas.addEventListener('pointerdown', e => {
+    if (!isBgLoaded || previewMode) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    const { x, y } = canvasPoint(e);
+    const sel = layers.find(l => l.id === selectedLayerId);
+    const handle = getHandleHit(x, y, sel);
+    if (handle) {
+        dragMode = handle;
+        dragStart = { x, y, layer: JSON.parse(JSON.stringify(sel)), startRot: sel.rotation };
+        pushHistory();
+        setCanvasCursor(handle.startsWith('resize') ? handle : handle);
+        startDrag(e);
+        return;
+    }
+    const hit = hitTest(x, y);
+    if (hit) {
+        if (selectedLayerId !== hit) selectLayer(hit);
+        dragMode = 'move';
+        const l = layers.find(layer => layer.id === hit);
+        dragStart = { x, y, ox: l.x, oy: l.y };
+        pushHistory();
+        setCanvasCursor('move');
+        startDrag(e);
+    } else {
+        selectedLayerId = null;
+        renderLayerList();
+        syncPropsFromLayer();
+        redraw();
+        setCanvasCursor(null);
+    }
+});
+
+canvas.addEventListener('pointermove', e => {
+    if (isDragging) return;
+    const { x, y } = canvasPoint(e);
+    const sel = layers.find(l => l.id === selectedLayerId);
+
+    if (sel && !previewMode) {
+        const h = getHandleHit(x, y, sel);
+        if (h) setCanvasCursor(h);
+        else if (hitTest(x, y) === sel.id) setCanvasCursor('move');
+        else setCanvasCursor(null);
+    }
+});
+
+window.addEventListener('blur', () => { if (isDragging) endDrag(null); });
+
+document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
+    const l = layers.find(x => x.id === selectedLayerId);
+    if (!l) return;
+    const step = e.shiftKey ? 10 : 2;
+    let moved = false;
+    pushHistory();
+    if (e.key === 'ArrowUp') { l.y -= step; moved = true; }
+    if (e.key === 'ArrowDown') { l.y += step; moved = true; }
+    if (e.key === 'ArrowLeft') { l.x -= step; moved = true; }
+    if (e.key === 'ArrowRight') { l.x += step; moved = true; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelectedLayer(); return; }
+    if (moved) { e.preventDefault(); syncPropsFromLayer(); redraw(); saveStorage(); }
+});
+
+function renderExport(previewRow) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImage, 0, 0);
+    layers.forEach(l => drawLayer(l, previewRow, true));
+}
+
+function exportImage() {
+    if (!isBgLoaded) { alert('اختر قالباً'); return; }
+    if (!layers.some(l => l.visible)) { alert('أضف طبقة واحدة على الأقل'); return; }
+    const row = excelData.length ? excelData[0] : null;
+    const wasPreview = previewMode;
+    previewMode = false;
+    renderExport(row);
+    previewMode = wasPreview;
+    const name = (row && row.name) || document.getElementById('networkName').value.trim() || 'بطاقة';
+    const link = document.createElement('a');
+    link.download = sanitize(name) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    redraw();
+    alert('تم التصدير');
+}
+
+async function exportAllFromExcel() {
+    if (!excelData.length) { alert('استورد Excel أولاً'); return; }
+    for (let i = 0; i < excelData.length; i++) {
+        renderExport(excelData[i]);
+        const link = document.createElement('a');
+        link.download = sanitize(excelData[i].name || 'عميل-' + (i + 1)) + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        await new Promise(r => setTimeout(r, 400));
+    }
+    redraw();
+    alert('تم تصدير ' + excelData.length + ' صورة');
+}
+
+function sanitize(n) { return n.replace(/[\\/:*?"<>|]/g, '_').trim() || 'بطاقة'; }
+
+document.getElementById('newTemplateUpload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const id = 'custom-' + Date.now();
+        selectTemplate(id, ev.target.result, true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+});
+
+document.getElementById('replaceBgUpload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => replaceBackgroundOnly(ev.target.result);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+});
+
+document.getElementById('excelUpload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+        const first = (rows[0] || []).map(c => String(c).toLowerCase());
+        const hasHeader = first.some(c => c.includes('اسم') || c.includes('name') || c.includes('كود'));
+        const dataRows = hasHeader ? rows.slice(1) : rows;
+        excelData = dataRows.map(r => ({ name: String(r[0] || ''), code: String(r[1] || ''), phone: String(r[2] || '') }))
+            .filter(r => r.name || r.code || r.phone);
+        document.getElementById('excelInfo').style.display = 'inline';
+        document.getElementById('excelInfo').textContent = excelData.length + ' صف';
+        document.getElementById('exportAllBtn').style.display = excelData.length ? 'block' : 'none';
+        alert('تم استيراد ' + excelData.length + ' صف');
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+loadStorage();
+defaultTemplates = buildTemplateList();
+initFontSelect();
+loadTemplatesGallery();
+document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcelTemplate);
+applyDesignOnlyMode();
+if (location.protocol.startsWith('http')) {
+    const box = document.getElementById('shareLinkBox');
+    const txt = document.getElementById('shareLinkText');
+    if (box && txt) {
+        txt.textContent = getShareDesignLink();
+        box.style.display = 'block';
+    }
+}
+if (defaultTemplates.length) {
+    const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
+    selectTemplate(defaultTpl.name);
+}
+</script>
+</body>
+</html>
