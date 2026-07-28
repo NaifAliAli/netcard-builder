@@ -120,7 +120,7 @@
 <body>
 <div id="appLoading">
     <div class="spinner"></div>
-    <div>جاري تحميل القوالب — يرجى الانتظار...</div>
+    <div>جاري التحميل...</div>
 </div>
 <div class="app">
     <div class="header">
@@ -397,6 +397,9 @@ function buildTemplateList() {
 
 function getTemplateImageSources(tpl) {
     if (!tpl) return { src: null, fallbackName: null };
+    if (isHostedSite() && tpl.path) {
+        return { src: assetUrl(tpl.path), fallbackName: tpl.name };
+    }
     const b64 = tpl.base64 || getBase64ForTemplate(tpl.name);
     if (b64) return { src: b64, fallbackName: null };
     if (tpl.path) return { src: assetUrl(tpl.path), fallbackName: tpl.name };
@@ -606,10 +609,12 @@ function loadTemplatesGallery() {
         div.className = 'tpl' + (tpl.name === DEFAULT_TEMPLATE ? ' featured' : '') + (currentTemplateId === tpl.name ? ' selected' : '');
         const img = document.createElement('img');
         img.alt = tpl.name;
-        img.src = tpl.thumb || tpl.base64 || '';
-        if (tpl.base64 && tpl.thumb !== tpl.base64) {
-            img.onerror = () => { img.onerror = null; if (tpl.base64) img.src = tpl.base64; };
-        }
+        img.src = tpl.thumb || tpl.base64 || (tpl.path ? assetUrl(tpl.path) : '');
+        img.onerror = () => {
+            img.onerror = null;
+            if (tpl.path) img.src = CDN_BASE + tpl.path.replace(/^\/+/, '');
+            else if (tpl.base64) img.src = tpl.base64;
+        };
         const span = document.createElement('span');
         span.textContent = tpl.name + (tpl.name === DEFAULT_TEMPLATE ? ' (افتراضي)' : '');
         div.appendChild(img);
@@ -669,6 +674,11 @@ function loadBackground(src, onReady, fallbackName) {
 
     const fail = () => {
         if (loadId !== bgLoadId) return;
+        const tpl = fallbackName ? getTemplateByName(fallbackName) : null;
+        if (tpl && tpl.path && src !== CDN_BASE + tpl.path) {
+            loadBackground(CDN_BASE + tpl.path.replace(/^\/+/, ''), onReady, null);
+            return;
+        }
         if (fallbackName) {
             ensureBase64Loaded().then(() => {
                 const b64 = getBase64ForTemplate(fallbackName);
@@ -1279,11 +1289,6 @@ loadStorage();
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcelTemplate);
 
 async function bootApp() {
-    try {
-        await ensureBase64Loaded();
-    } catch (e) {
-        console.warn('base64 templates unavailable, using CDN images', e);
-    }
     defaultTemplates = buildTemplateList();
     if (!defaultTemplates.length) {
         alert('تعذر تحميل القوالب. تحقق من الاتصال بالإنترنت وحاول مجدداً.');
@@ -1300,10 +1305,12 @@ async function bootApp() {
         box.style.display = 'block';
     }
     hideAppLoading();
-    if (defaultTemplates.length) {
-        const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
-        selectTemplate(defaultTpl.name);
-    }
+    const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
+    selectTemplate(defaultTpl.name);
+    ensureBase64Loaded().then(() => {
+        defaultTemplates = buildTemplateList();
+        loadTemplatesGallery();
+    }).catch(() => {});
 }
 bootApp();
 </script>
