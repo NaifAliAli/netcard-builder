@@ -252,7 +252,7 @@ const STORAGE_KEY = 'mahfazat-jeeb-layers-v1';
 const DEFAULT_FONT = 'Arial';
 const DEFAULT_FONT_SIZE = 66;
 const DEFAULT_FONT_COLOR = '#000000';
-const DEFAULT_TEMPLATE = 'template1';
+const DEFAULT_TEMPLATE = 'template13';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -320,10 +320,20 @@ function buildTemplateList() {
             name: t.name,
             base64: t.base64 || null,
             path: t.path || null,
-            src: (usePaths && t.path) ? t.path : (t.base64 || t.path),
+            thumb: (usePaths && t.path) ? t.path + '?v=' + encodeURIComponent(t.name) : (t.base64 || t.path),
+            src: t.base64 || t.path,
             fallback: t.base64 || null,
         }))
         .filter(t => t.src || t.fallback);
+}
+
+function getTemplateImageSources(tpl) {
+    if (!tpl) return { src: null, fallback: null };
+    const usePaths = location.protocol === 'http:' || location.protocol === 'https:';
+    if (usePaths && tpl.path) {
+        return { src: tpl.path + '?v=' + encodeURIComponent(tpl.name), fallback: tpl.base64 || null };
+    }
+    return { src: tpl.base64 || tpl.path, fallback: null };
 }
 
 function getTemplateByName(name) {
@@ -527,9 +537,9 @@ function loadTemplatesGallery() {
         div.className = 'tpl' + (tpl.name === DEFAULT_TEMPLATE ? ' featured' : '') + (currentTemplateId === tpl.name ? ' selected' : '');
         const img = document.createElement('img');
         img.alt = tpl.name;
-        img.src = tpl.src;
-        if (tpl.path && tpl.base64 && tpl.path !== tpl.base64) {
-            img.onerror = () => { img.onerror = null; img.src = tpl.base64; };
+        img.src = tpl.thumb || tpl.src;
+        if (tpl.fallback && tpl.thumb !== tpl.fallback) {
+            img.onerror = () => { img.onerror = null; img.src = tpl.fallback; };
         }
         const span = document.createElement('span');
         span.textContent = tpl.name + (tpl.name === DEFAULT_TEMPLATE ? ' (افتراضي)' : '');
@@ -552,9 +562,8 @@ function selectTemplate(id, dataUrl, isNewCustom) {
 
     currentTemplateId = id;
     const tpl = getTemplateByName(id);
-    const freshSrc = tpl ? tpl.src : null;
-    const altSrc = tpl && tpl.path && tpl.base64 ? tpl.path : null;
-    const src = dataUrl || freshSrc;
+    const { src: tplSrc, fallback } = getTemplateImageSources(tpl);
+    const src = dataUrl || tplSrc;
     loadBackground(src, () => {
         if (templateStore[id] && templateStore[id].layers) {
             layers = JSON.parse(JSON.stringify(templateStore[id].layers));
@@ -571,7 +580,7 @@ function selectTemplate(id, dataUrl, isNewCustom) {
         saveStorage();
         loadTemplatesGallery();
         switchTab('design');
-    }, altSrc);
+    }, fallback);
 }
 
 function loadBackground(src, onReady, altSrc) {
@@ -580,16 +589,6 @@ function loadBackground(src, onReady, altSrc) {
         return;
     }
     const loadId = ++bgLoadId;
-
-    const finish = () => {
-        if (loadId !== bgLoadId) return;
-        canvas.width = bgImage.width;
-        canvas.height = bgImage.height;
-        canvas.style.display = 'block';
-        document.getElementById('placeholder').style.display = 'none';
-        isBgLoaded = true;
-        if (onReady) onReady();
-    };
 
     const fail = () => {
         if (loadId !== bgLoadId) return;
@@ -600,10 +599,19 @@ function loadBackground(src, onReady, altSrc) {
         }
     };
 
-    bgImage.onload = finish;
-    bgImage.onerror = fail;
-    bgImage.src = '';
-    bgImage.src = src;
+    const freshImg = new Image();
+    freshImg.onload = () => {
+        if (loadId !== bgLoadId) return;
+        bgImage.src = freshImg.src;
+        canvas.width = freshImg.naturalWidth;
+        canvas.height = freshImg.naturalHeight;
+        canvas.style.display = 'block';
+        document.getElementById('placeholder').style.display = 'none';
+        isBgLoaded = true;
+        if (onReady) onReady();
+    };
+    freshImg.onerror = fail;
+    freshImg.src = src;
 }
 
 function replaceBackgroundOnly(dataUrl) {
