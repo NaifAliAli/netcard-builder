@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -294,7 +294,7 @@ const GH_REPO = 'NaifAliAli/netcard-builder';
 const GH_BRANCH = 'main';
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@' + GH_BRANCH + '/simple/';
 const RAW_BASE = 'https://raw.githubusercontent.com/' + GH_REPO + '/' + GH_BRANCH + '/simple/';
-const PAGES_URL = 'https://naifaliali.github.io/netcard-builder/#design';
+const PAGES_URL = '';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -632,35 +632,17 @@ function switchTab(tab) {
 }
 
 function isDesignOnlyLink() {
-    const hash = (location.hash || '').replace('#', '').toLowerCase();
-    const params = new URLSearchParams(location.search);
-    return hash === 'design' || params.get('design') === '1' || params.get('view') === 'design';
+    return false;
 }
 
-function applyDesignOnlyMode() {
-    if (!isDesignOnlyLink()) return;
-    document.body.classList.add('design-only');
-    switchTab('design');
-}
+function applyDesignOnlyMode() {}
 
 function getShareDesignLink() {
-    if (location.protocol !== 'file:' && isHostedSite()) {
-        let base = location.href.split('#')[0].split('?')[0];
-        if (usesGitHubPages()) {
-            base = base.replace(/\/index\.html$/i, '/').replace(/\/?$/, '/');
-        }
-        return base + '#design';
-    }
-    return PAGES_URL;
+    return 'محلي: انقر فتح-محفظة-جيب.bat';
 }
 
 function copyShareLink() {
-    const link = getShareDesignLink();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(link).then(() => alert('تم نسخ الرابط:\n' + link)).catch(() => prompt('انسخ الرابط:', link));
-    } else {
-        prompt('انسخ الرابط وشاركه مع الموظفين:', link);
-    }
+    alert('الاستخدام المحلي:\n1) فك ضغط المجلد\n2) انقر: فتح-محفظة-جيب.bat\n\nلا حاجة لرابط إنترنت.');
 }
 
 function goToDesign() {
@@ -1408,11 +1390,7 @@ async function bootApp() {
     loadTemplatesGallery();
     applyDesignOnlyMode();
     const box = document.getElementById('shareLinkBox');
-    const txt = document.getElementById('shareLinkText');
-    if (box && txt) {
-        txt.textContent = getShareDesignLink();
-        box.style.display = 'block';
-    }
+    if (box) box.style.display = 'none';
     hideAppLoading();
     const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
     selectTemplate(defaultTpl.name);
