@@ -52,9 +52,20 @@ jobs:
 
       - uses: actions/configure-pages@v4
 
+      - name: Prepare slim deploy (large assets via CDN)
+        id: deploy
+        shell: bash
+        run: |
+          root="${{ steps.site.outputs.path }}"
+          mkdir -p _site
+          cp -r "$root"/. _site/
+          rm -f _site/templates-base64.js
+          find _site/templates -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' \) -delete 2>/dev/null || true
+          echo "path=_site" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ steps.site.outputs.path }}
+          path: ${{ steps.deploy.outputs.path }}
 
       - id: deployment
         uses: actions/deploy-pages@v4

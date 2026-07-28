@@ -10,8 +10,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@900&family=Lalezar&family=El+Messiri:wght@700&family=Cairo:wght@900&family=Changa:wght@800&family=Amiri:wght@700&family=Reem+Kufi:wght@700&family=Katibeh&family=Scheherazade+New:wght@700&family=Harmattan:wght@700&family=Aref+Ruqaa:wght@700&family=Lemonada:wght@700&family=Marhey:wght@700&family=Rakkas&family=Readex+Pro:wght@700&family=Almarai:wght@800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="templates-manifest.js"></script>
+    <script>if(typeof XLSX==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
+    <script>
+    // Embedded manifest — works even when GitHub Pages fails to serve external JS
+    const templatesManifest = [
+        {"name":"template1","path":"templates/template1.png"},
+        {"name":"template2","path":"templates/template2.png"},
+        {"name":"template3","path":"templates/template3.png"},
+        {"name":"template4","path":"templates/template4.png"},
+        {"name":"template5","path":"templates/template5.png"},
+        {"name":"template7","path":"templates/template7.png"},
+        {"name":"template8","path":"templates/template8.png"},
+        {"name":"template9","path":"templates/template9.png"},
+        {"name":"template10","path":"templates/template10.png"},
+        {"name":"template11","path":"templates/template11.jpeg"},
+        {"name":"template12","path":"templates/template12.jpeg"},
+        {"name":"template13","path":"templates/template13.png"}
+    ];
+    </script>
     <style>
         @font-face { font-family: 'Hacen Saudi Arabia'; src: url('fonts/Hacen Saudi Arabia.ttf') format('truetype'); }
         @font-face { font-family: 'Hacen Promoter'; src: url('fonts/Hacen Promoter.ttf') format('truetype'); }
@@ -323,11 +341,9 @@ function usesGitHubPages() {
 
 function assetUrl(relativePath) {
     if (!relativePath || location.protocol === 'file:') return relativePath;
-    // GitHub Pages returns 500 for template PNG files — use jsDelivr for assets
-    if (usesGitHubPages()) {
+    if (usesGitHubPages() || isHostedSite()) {
         return CDN_BASE + relativePath.replace(/^\/+/, '');
     }
-    if (isHostedSite()) return relativePath.replace(/^\/+/, '');
     return CDN_BASE + relativePath.replace(/^\/+/, '');
 }
 
@@ -407,7 +423,7 @@ function buildTemplateList() {
 
 function getTemplateImageSources(tpl) {
     if (!tpl) return { src: null, fallbackName: null };
-    if (isHostedSite() && tpl.path) {
+    if (tpl.path && location.protocol !== 'file:') {
         return { src: assetUrl(tpl.path), fallbackName: tpl.name };
     }
     const b64 = tpl.base64 || getBase64ForTemplate(tpl.name);
@@ -1307,6 +1323,10 @@ document.getElementById('replaceBgUpload').addEventListener('change', e => {
 document.getElementById('excelUpload').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
+    if (typeof XLSX === 'undefined') {
+        alert('مكتبة Excel لم تُحمّل. تحقق من الإنترنت وحاول مجدداً.');
+        return;
+    }
     const reader = new FileReader();
     reader.onload = ev => {
         const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
