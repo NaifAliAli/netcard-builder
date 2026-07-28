@@ -271,7 +271,7 @@ const GH_REPO = 'NaifAliAli/netcard-builder';
 const GH_BRANCH = 'main';
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@' + GH_BRANCH + '/simple/';
 const RAW_BASE = 'https://raw.githubusercontent.com/' + GH_REPO + '/' + GH_BRANCH + '/simple/';
-const PAGES_URL = 'https://naifaliali.github.io/netcard-builder/simple/index.html#design';
+const PAGES_URL = 'https://naifaliali.github.io/netcard-builder/#design';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -594,8 +594,8 @@ function applyDesignOnlyMode() {
 function getShareDesignLink() {
     if (location.protocol !== 'file:' && isHostedSite()) {
         let base = location.href.split('#')[0].split('?')[0];
-        if (usesGitHubPages() && !/\.html$/i.test(base)) {
-            base = base.replace(/\/?$/, '/index.html');
+        if (usesGitHubPages()) {
+            base = base.replace(/\/index\.html$/i, '/').replace(/\/?$/, '/');
         }
         return base + '#design';
     }

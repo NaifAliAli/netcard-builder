@@ -50,6 +50,10 @@
 4) بعد 3 دقائق الرابط:
    https://naifaliali.github.io/netcard-builder/#design
 
+   ⚠ لا تستخدم /simple/ في الرابط — الرابط القديم لا يعمل
+   ✗ .../netcard-builder/simple/index.html  (404)
+   ✓ .../netcard-builder/#design            (صحيح)
+
    ⚠ بعض الشبكات في السعودية تحجب github.io
    إذا لم يفتح عندك جرّب Vercel (الطريقة 1)
 
