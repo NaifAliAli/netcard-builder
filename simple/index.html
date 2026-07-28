@@ -270,6 +270,7 @@ const DEFAULT_TEMPLATE = 'template13';
 const GH_REPO = 'NaifAliAli/netcard-builder';
 const GH_BRANCH = 'main';
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@' + GH_BRANCH + '/simple/';
+const RAW_BASE = 'https://raw.githubusercontent.com/' + GH_REPO + '/' + GH_BRANCH + '/simple/';
 const TYPE_LABELS = { name: 'اسم الشبكة', code: 'رقم الكود', phone: 'رقم الهاتف', image: 'صورة' };
 const TYPE_COLORS = { name: '#ef4444', code: '#2563eb', phone: '#059669', image: '#8b5cf6' };
 const PLACEHOLDERS = { name: '[اسم الشبكة]', code: '[رقم الكود]', phone: '[رقم الهاتف]' };
@@ -319,11 +320,24 @@ function ensureBase64Loaded() {
     if (typeof templatesBase64 !== 'undefined') return Promise.resolve();
     if (base64ScriptPromise) return base64ScriptPromise;
     base64ScriptPromise = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = location.protocol === 'file:' ? 'templates-base64.js' : assetUrl('templates-base64.js');
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('failed'));
-        document.head.appendChild(s);
+        const local = 'templates-base64.js';
+        const urls = location.protocol === 'file:'
+            ? [local]
+            : [RAW_BASE + 'templates-base64.js', assetUrl('templates-base64.js')];
+        let i = 0;
+        const tryNext = () => {
+            if (i >= urls.length) {
+                base64ScriptPromise = null;
+                reject(new Error('failed'));
+                return;
+            }
+            const s = document.createElement('script');
+            s.src = urls[i++];
+            s.onload = () => resolve();
+            s.onerror = tryNext;
+            document.head.appendChild(s);
+        };
+        tryNext();
     });
     return base64ScriptPromise;
 }
@@ -1255,11 +1269,14 @@ async function bootApp() {
     try {
         await ensureBase64Loaded();
     } catch (e) {
-        alert('تعذر تحميل ملف القوالب. تحقق من الاتصال بالإنترنت وحاول مجدداً.');
+        console.warn('base64 templates unavailable, using CDN images', e);
+    }
+    defaultTemplates = buildTemplateList();
+    if (!defaultTemplates.length) {
+        alert('تعذر تحميل القوالب. تحقق من الاتصال بالإنترنت وحاول مجدداً.');
         hideAppLoading();
         return;
     }
-    defaultTemplates = buildTemplateList();
     initFontSelect();
     loadTemplatesGallery();
     applyDesignOnlyMode();
