@@ -29,7 +29,9 @@ jobs:
         id: deploy
         shell: bash
         run: |
-          if [ -f web/index.html ]; then
+          if [ -f docs/index.html ]; then
+            root=docs
+          elif [ -f web/index.html ]; then
             root=web
           elif [ -f simple/index.html ]; then
             root=simple
@@ -38,10 +40,9 @@ jobs:
           fi
           mkdir -p _site
           cp -r "$root"/. _site/
-          rm -f _site/templates-base64.js
-          rm -rf _site/templates-data
-          rm -rf _site/templates
-          rm -f _site/prepare-web.ps1 _site/README.md _site/vercel.json
+          rm -f _site/templates-base64.js 2>/dev/null || true
+          rm -rf _site/templates-data _site/templates _site/fonts 2>/dev/null || true
+          rm -f _site/prepare-web.ps1 _site/README.md _site/vercel.json 2>/dev/null || true
           echo "Deploying from $root — $(find _site -type f | wc -l) files"
           ls -la _site/
           echo "path=_site" >> "$GITHUB_OUTPUT"
