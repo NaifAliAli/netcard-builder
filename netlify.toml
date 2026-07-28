@@ -1,0 +1,8 @@
+﻿[build]
+  publish = "simple"
+  command = "echo 'static site — no build'"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
