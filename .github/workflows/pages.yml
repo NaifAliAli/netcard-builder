@@ -1,0 +1,60 @@
+﻿# If simple/ contents are at repo root, use path: .
+# If the repo keeps the monorepo layout, use path: simple
+
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect site root (simple/ or repo root)
+        id: site
+        shell: bash
+        run: |
+          if [ -f simple/index.html ]; then
+            echo "path=simple" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build templates (if images exist)
+        shell: pwsh
+        run: |
+          $root = "${{ steps.site.outputs.path }}"
+          $tpl = Join-Path $root "templates"
+          if (Test-Path $tpl) {
+            $imgs = Get-ChildItem $tpl -File | Where-Object { $_.Extension -match '\.(png|jpe?g)$' }
+            if ($imgs.Count -gt 0) {
+              Push-Location $root
+              & ./convert-templates.ps1
+              Pop-Location
+            }
+          }
+
+      - uses: actions/configure-pages@v4
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.site.outputs.path }}
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

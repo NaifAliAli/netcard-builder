@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+NetCard-Builder-Support/
+*.zip
+*.log
+.DS_Store
+Thumbs.db
+.env*
+.vercel
