@@ -284,6 +284,7 @@ function templateSortKey(name) {
 
 function buildTemplateList() {
     const map = new Map();
+    const usePaths = location.protocol === 'http:' || location.protocol === 'https:';
 
     if (typeof templatesBase64 !== 'undefined' && Array.isArray(templatesBase64)) {
         templatesBase64.forEach(t => {
@@ -309,10 +310,10 @@ function buildTemplateList() {
             name: t.name,
             base64: t.base64 || null,
             path: t.path || null,
-            // base64 أولاً — موثوق محلياً وعلى GitHub
-            src: t.base64 || t.path,
+            src: (usePaths && t.path) ? t.path : (t.base64 || t.path),
+            fallback: t.base64 || null,
         }))
-        .filter(t => t.src);
+        .filter(t => t.src || t.fallback);
 }
 
 function getTemplateByName(name) {
