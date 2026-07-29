@@ -674,7 +674,7 @@ function loadTemplatesGallery() {
     });
 }
 
-function selectTemplate(id, dataUrl, isNewCustom) {
+function selectTemplate(id, dataUrl, isNewCustom, keepCurrentTab) {
     if (currentTemplateId && isBgLoaded) saveStorage();
 
     if (currentTemplateId && currentTemplateId !== id && isBgLoaded) {
@@ -711,7 +711,7 @@ function selectTemplate(id, dataUrl, isNewCustom) {
         redraw();
         saveStorage();
         loadTemplatesGallery();
-        if (!isDesignOnlyLink()) switchTab('design');
+        if (!keepCurrentTab) switchTab('design');
     }, fallbackName);
 }
 
@@ -1392,8 +1392,9 @@ async function bootApp() {
     const box = document.getElementById('shareLinkBox');
     if (box) box.style.display = 'none';
     hideAppLoading();
+    switchTab('templates');
     const defaultTpl = defaultTemplates.find(t => t.name === DEFAULT_TEMPLATE) || defaultTemplates[0];
-    selectTemplate(defaultTpl.name);
+    if (defaultTpl) selectTemplate(defaultTpl.name, null, false, true);
     ensureBase64Loaded().then(() => {
         defaultTemplates = buildTemplateList();
         loadTemplatesGallery();
